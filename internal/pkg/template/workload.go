@@ -78,6 +78,10 @@ type LogConfigOpts struct {
 	ConfigFile     *string
 }
 
+type HttpHealthCheckOpts struct {
+	HealthyThreshold *int64
+}
+
 // AutoscalingOpts holds configuration that's needed for Auto Scaling.
 type AutoscalingOpts struct {
 	MinCapacity  *int
@@ -97,12 +101,13 @@ type StateMachineOpts struct {
 // WorkloadOpts holds optional data that can be provided to enable features in a workload stack template.
 type WorkloadOpts struct {
 	// Additional options that are common between **all** workload templates.
-	Variables   map[string]string
-	Secrets     map[string]string
-	NestedStack *WorkloadNestedStackOpts // Outputs from nested stacks such as the addons stack.
-	Sidecars    []*SidecarOpts
-	LogConfig   *LogConfigOpts
-	Autoscaling *AutoscalingOpts
+	Variables       map[string]string
+	Secrets         map[string]string
+	NestedStack     *WorkloadNestedStackOpts // Outputs from nested stacks such as the addons stack.
+	Sidecars        []*SidecarOpts
+	HttpHealthCheck *HttpHealthCheckOpts
+	LogConfig       *LogConfigOpts
+	Autoscaling     *AutoscalingOpts
 
 	// Additional options for service templates.
 	HealthCheck        *ecs.HealthCheck

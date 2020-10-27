@@ -108,11 +108,19 @@ func (s *LoadBalancedWebService) Template() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("convert the Auto Scaling configuration for service %s: %w", s.name, err)
 	}
+	healthyTreshold := defaultHealthyTrshold
+	if s.manifest.HealthyThreshold == nil {
+
+	}
+
 	content, err := s.parser.ParseLoadBalancedWebService(template.WorkloadOpts{
-		Variables:          s.manifest.Variables,
-		Secrets:            s.manifest.Secrets,
-		NestedStack:        outputs,
-		Sidecars:           sidecars,
+		Variables:   s.manifest.Variables,
+		Secrets:     s.manifest.Secrets,
+		NestedStack: outputs,
+		Sidecars:    sidecars,
+		HttpHealthCheck: &template.HttpHealthCheckOpts{
+			HealthyThreshold: healthyTreshold,
+		},
 		LogConfig:          s.manifest.LogConfigOpts(),
 		Autoscaling:        autoscaling,
 		RulePriorityLambda: rulePriorityLambda.String(),
