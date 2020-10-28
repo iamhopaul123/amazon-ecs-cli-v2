@@ -78,6 +78,13 @@ type LogConfigOpts struct {
 	ConfigFile     *string
 }
 
+type HTTPHealthCheckOpts struct {
+	HealthyThreshold   *int64
+	UnhealthyThreshold *int64
+	Interval           *int64
+	Timeout            *int64
+}
+
 // AutoscalingOpts holds configuration that's needed for Auto Scaling.
 type AutoscalingOpts struct {
 	MinCapacity  *int
@@ -108,6 +115,7 @@ type WorkloadOpts struct {
 	HealthCheck        *ecs.HealthCheck
 	RulePriorityLambda string
 	DesiredCountLambda string
+	HttpHealthCheck    *HTTPHealthCheckOpts
 
 	// Additional options for job templates.
 	ScheduleExpression string

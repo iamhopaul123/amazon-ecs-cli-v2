@@ -115,6 +115,7 @@ func (s *LoadBalancedWebService) Template() (string, error) {
 		Sidecars:           sidecars,
 		LogConfig:          s.manifest.LogConfigOpts(),
 		Autoscaling:        autoscaling,
+		HttpHealthCheck:    s.manifest.HTTPHealthCHeckOpts(),
 		RulePriorityLambda: rulePriorityLambda.String(),
 		DesiredCountLambda: desiredCountLambda.String(),
 	})
