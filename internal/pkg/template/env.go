@@ -34,6 +34,7 @@ type EnvOpts struct {
 	DNSDelegationLambda       string
 	ACMValidationLambda       string
 	EnableLongARNFormatLambda string
+	CustomDomainLambda        string
 
 	ImportVPC *config.ImportVPC
 	VPCConfig *config.AdjustVPC

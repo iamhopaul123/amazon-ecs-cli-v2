@@ -78,6 +78,7 @@ let report = function (
  * @param {string} requestType Type of the request.
  * @param {string} stackName Name of the stack.
  * @param {string} workload Name of the copilot workload.
+ * @param {string} alias Name of the domain alias.
  * @param {string[]} envParameters List of parameters from the environment stack to update.
  *
  * @returns {parameters} The updated parameters.
@@ -86,6 +87,7 @@ const controlEnv = async function (
   requestType,
   stackName,
   workload,
+  alias,
   envParameters
 ) {
   var cfn = new aws.CloudFormation();
@@ -104,11 +106,26 @@ const controlEnv = async function (
     for (const param of params) {
       for (const envParam of envParameters) {
         if (param.ParameterKey === envParam) {
-          const [updatedParamValue, paramUpdated] = updateParameter(
-            requestType,
-            workload,
-            param.ParameterValue
-          );
+          var updatedParamValue, paramUpdated;
+          switch (envParam) {
+            case "ALBWorkloads":
+              [updatedParamValue, paramUpdated] = updateALBWorkload(
+                requestType,
+                workload,
+                param.ParameterValue
+              );
+              break;
+            case "Aliases":
+              [updatedParamValue, paramUpdated] = updateAliases(
+                requestType,
+                workload,
+                alias,
+                param.ParameterValue
+              );
+              break;
+            default:
+              break;
+          }
           param.ParameterValue = updatedParamValue;
           updated = updated || paramUpdated;
         }
@@ -182,6 +199,7 @@ exports.handler = async function (event, context) {
             "Create",
             props.EnvStack,
             props.Workload,
+            props.Alias,
             props.Parameters
           ),
         ]);
@@ -194,6 +212,7 @@ exports.handler = async function (event, context) {
             "Update",
             props.EnvStack,
             props.Workload,
+            props.Alias,
             props.Parameters
           ),
         ]);
@@ -206,6 +225,7 @@ exports.handler = async function (event, context) {
             "Delete",
             props.EnvStack,
             props.Workload,
+            props.Alias,
             props.Parameters
           ),
         ]);
@@ -236,17 +256,28 @@ const getExportedValues = function (stack) {
   return exportedValues;
 };
 
-/**
- * Update parameter by adding workload to the parameter values.
- *
- * @param {string} requestType type of the request.
- * @param {string} workload name of the workload.
- * @param {string} paramValue value of the parameter.
- *
- * @returns {string} The updated parameter.
- * @returns {bool} whether the parameter is modified.
- */
-const updateParameter = function (requestType, workload, paramValue) {
+const updateALBWorkload = function (requestType, workload, workloads) {
+  return updateParameterSet(requestType, workload, workloads);
+};
+
+const updateAliases = function (requestType, workload, alias, aliases) {
+  var obj = JSON.parse(aliases || '{}');
+  const workloadAliases = obj[workload] || '';
+  const [updatedWorkloadAliases, _] = updateParameterSet(
+    requestType,
+    alias,
+    workloadAliases
+  );
+  if (updatedWorkloadAliases !== "") {
+    obj[workload] = updatedWorkloadAliases;
+  } else {
+    obj[workload] = undefined;
+  }
+  const updatedAliases = JSON.stringify(obj)
+  return [updatedAliases === '{}' ? '' : updatedAliases, updatedAliases !== aliases];
+};
+
+const updateParameterSet = function (requestType, param, paramValue) {
   var set = new Set(
     paramValue.split(",").filter(function (el) {
       return el != "";
@@ -254,13 +285,13 @@ const updateParameter = function (requestType, workload, paramValue) {
   );
   switch (requestType) {
     case "Create":
-      set.add(workload);
+      set.add(param);
       break;
     case "Update":
-      set.add(workload);
+      set.add(param);
       break;
     case "Delete":
-      set.delete(workload);
+      set.delete(param);
       break;
     default:
       throw new Error(`Unsupported request type ${requestType}`);

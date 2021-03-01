@@ -5,9 +5,11 @@ EnvControllerAction:
   Properties:
     ServiceToken: !GetAtt EnvControllerFunction.Arn
     Workload: !Ref WorkloadName
+    Alias: {{ .CustomDomain }}
     EnvStack: !Sub '${AppName}-${EnvName}'
-    Parameters: 
+    Parameters:
       - 'ALBWorkloads'
+      - 'Aliases'
     # We need to force trigger this lambda function on all deployments, so we give it a random ID as input on all event types.
     UpdateID: {{ randomUUID }}
 

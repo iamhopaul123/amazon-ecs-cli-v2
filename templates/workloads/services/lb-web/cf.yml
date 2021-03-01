@@ -45,7 +45,7 @@ Conditions:
     !Equals [!Ref HTTPSEnabled, true]
   HasAddons: # If a bucket URL is specified, that means the template exists.
     !Not [!Equals [!Ref AddonsTemplateURL, ""]]
-  HTTPRootPath: # If we're using path based routing and use the root path, we have some special logic
+  IsDefaultRootPath: # If we're using path based routing and use the root path, we have some special logic
     !Equals [!Ref RulePath, "/"]
 Resources:
 {{include "loggroup" . | indent 2}}
@@ -275,6 +275,12 @@ Resources:
         - TargetGroupArn: !Ref TargetGroup
           Type: forward
       Conditions:
+{{- if .CustomDomain }}
+        - Field: 'host-header'
+          HostHeaderConfig:
+            Values:
+              - {{ .CustomDomain }}
+{{- else }}
         - Field: 'host-header'
           HostHeaderConfig:
             Values:
@@ -283,6 +289,17 @@ Resources:
                 - - !Ref WorkloadName
                   - Fn::ImportValue:
                       !Sub "${AppName}-${EnvName}-SubDomain"
+{{- end}}
+        - Field: 'path-pattern'
+          PathPatternConfig:
+            Values:
+              !If
+                - IsDefaultRootPath
+                -
+                  - "/*"
+                -
+                  - !Sub "/${RulePath}"
+                  - !Sub "/${RulePath}/*"
       ListenerArn: !GetAtt EnvControllerAction.HTTPSListenerArn
       Priority: !GetAtt HTTPSRulePriorityAction.Priority
 
@@ -313,7 +330,7 @@ Resources:
           PathPatternConfig:
             Values:
               !If
-                - HTTPRootPath
+                - IsDefaultRootPath
                 -
                   - "/*"
                 -
@@ -322,7 +339,7 @@ Resources:
       ListenerArn: !GetAtt EnvControllerAction.HTTPListenerArn
       Priority: 
         !If
-          - HTTPRootPath
+          - IsDefaultRootPath
           - 50000 # This is the max rule priority. Since this rule evaluates true for everything, we make sure it is last
           - !GetAtt HTTPRulePriorityAction.Priority
 

@@ -14,6 +14,10 @@ Parameters:
     Type: String
     Default: ""
 
+  Aliases:
+    Type: String
+    Default: ""
+
   ToolsAccountPrincipalARN:
     Type: String
 
@@ -28,6 +32,8 @@ Parameters:
 Conditions:
   CreateALB:
     !Not [!Equals [ !Ref ALBWorkloads, "" ]]
+  HasAliases:
+    !Not [!Equals [ !Ref Aliases, "" ]]
   DelegateDNS:
     !Not [!Equals [ !Ref AppDNSName, "" ]]
   ExportHTTPSListener: !And

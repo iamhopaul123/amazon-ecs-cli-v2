@@ -149,7 +149,7 @@ func TestRoute53_DomainExists(t *testing.T) {
 				client: mockRoute53Client,
 			}
 
-			gotExists, gotErr := service.DomainExists(tc.domainName)
+			gotExists, gotErr := service.DomainHostedZone(tc.domainName)
 
 			if gotErr != nil {
 				require.EqualError(t, tc.wantErr, gotErr.Error())

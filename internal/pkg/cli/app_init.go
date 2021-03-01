@@ -43,7 +43,7 @@ type initAppOpts struct {
 
 	identity identityService
 	store    applicationStore
-	route53  domainValidator
+	route53  domainHostedZoneGetter
 	ws       wsAppManager
 	cfn      appDeployer
 	prompt   prompter
@@ -86,9 +86,6 @@ func (o *initAppOpts) Validate() error {
 	if o.domainName != "" {
 		if err := validateDomainName(o.domainName); err != nil {
 			return fmt.Errorf("domain name %s is invalid: %w", o.domainName, err)
-		}
-		if err := o.validateDomain(o.domainName); err != nil {
-			return err
 		}
 	}
 	return nil
@@ -154,6 +151,10 @@ If you'd like to delete the application and all of its resources, run %s.
 
 // Execute creates a new managed empty application.
 func (o *initAppOpts) Execute() error {
+	hostedZoneID, err := o.domainHostedZone(o.domainName)
+	if err != nil {
+		return err
+	}
 	caller, err := o.identity.Get()
 	if err != nil {
 		return fmt.Errorf("get identity: %w", err)
@@ -165,10 +166,11 @@ func (o *initAppOpts) Execute() error {
 	}
 	o.prog.Start(fmt.Sprintf(fmtAppInitStart, color.HighlightUserInput(o.name)))
 	err = o.cfn.DeployApp(&deploy.CreateAppInput{
-		Name:           o.name,
-		AccountID:      caller.Account,
-		DomainName:     o.domainName,
-		AdditionalTags: o.resourceTags,
+		Name:             o.name,
+		AccountID:        caller.Account,
+		DomainName:       o.domainName,
+		DomainHostedZone: hostedZoneID,
+		AdditionalTags:   o.resourceTags,
 	})
 	if err != nil {
 		o.prog.Stop(log.Serrorf(fmtAppInitFailed, color.HighlightUserInput(o.name)))
@@ -177,10 +179,11 @@ func (o *initAppOpts) Execute() error {
 	o.prog.Stop(log.Ssuccessf(fmtAppInitComplete, color.HighlightUserInput(o.name)))
 
 	return o.store.CreateApplication(&config.Application{
-		AccountID: caller.Account,
-		Name:      o.name,
-		Domain:    o.domainName,
-		Tags:      o.resourceTags,
+		AccountID:        caller.Account,
+		Name:             o.name,
+		Domain:           o.domainName,
+		DomainHostedZone: hostedZoneID,
+		Tags:             o.resourceTags,
 	})
 }
 
@@ -202,15 +205,15 @@ func (o *initAppOpts) validateAppName(name string) error {
 	return nil
 }
 
-func (o *initAppOpts) validateDomain(domainName string) error {
-	domainExist, err := o.route53.DomainExists(domainName)
+func (o *initAppOpts) domainHostedZone(domainName string) (string, error) {
+	hostedZoneID, err := o.route53.DomainHostedZone(domainName)
 	if err != nil {
-		return err
+		return "", err
 	}
-	if !domainExist {
-		return fmt.Errorf("no hosted zone found for %s", domainName)
+	if hostedZoneID == "" {
+		return "", fmt.Errorf("no hosted zone found for %s", domainName)
 	}
-	return nil
+	return hostedZoneID, nil
 }
 
 // RecommendedActions returns a list of suggested additional commands users can run after successfully executing this command.

@@ -30,8 +30,28 @@ HTTPSCert:
   - DelegateDNSAction
   Properties:
     ServiceToken: !GetAtt CertificateValidationFunction.Arn
-    DomainName: !Sub ${EnvironmentName}.${AppName}.${AppDNSName}
-    HostedZoneId: !Ref EnvironmentHostedZone
+    AppName: !Ref AppName
+    EnvName: !Ref EnvironmentName
+    DomainName: !Ref AppDNSName
+    EnvHostedZoneId: !Ref EnvironmentHostedZone
     Region: !Ref AWS::Region
+    RootDNSRole: !Ref AppDNSDelegationRole
     SubjectAlternativeNames:
+    - !Sub "${AppDNSName}"
+    - !Sub "*.${AppDNSName}"
+    - !Sub "${AppName}.${AppDNSName}"
+    - !Sub "*.${AppName}.${AppDNSName}"
     - !Sub "*.${EnvironmentName}.${AppName}.${AppDNSName}"
+
+CustomDomainAction:
+  Condition: HasAliases
+  Type: Custom::CustomDomainFunction
+  Properties:
+    ServiceToken: !GetAtt CustomDomainFunction.Arn
+    AppName: !Ref AppName
+    EnvName: !Ref EnvironmentName
+    Aliases: !Ref Aliases
+    AppDNSRole: !Ref AppDNSDelegationRole
+    DomainName: !Ref AppDNSName
+    LoadBalancerDNS: !GetAtt PublicLoadBalancer.DNSName
+    LoadBalancerHostedZone: !GetAtt PublicLoadBalancer.CanonicalHostedZoneID

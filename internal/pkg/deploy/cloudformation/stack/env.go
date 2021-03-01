@@ -31,6 +31,7 @@ const (
 	acmValidationTemplatePath  = "custom-resources/dns-cert-validator.js"
 	dnsDelegationTemplatePath  = "custom-resources/dns-delegation.js"
 	enableLongARNsTemplatePath = "custom-resources/enable-long-arns.js"
+	customDomainTemplatePath   = "custom-resources/custom-domain.js"
 
 	// Mandatory parameter keys.
 	envParamAppNameKey               = "AppName"
@@ -75,6 +76,10 @@ func (e *EnvStackConfig) Template() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	customDomainLambda, err := e.parser.Read(customDomainTemplatePath)
+	if err != nil {
+		return "", err
+	}
 	vpcConf := &config.AdjustVPC{
 		CIDR:               DefaultVPCCIDR,
 		PrivateSubnetCIDRs: strings.Split(DefaultPrivateSubnetCIDRs, ","),
@@ -89,6 +94,7 @@ func (e *EnvStackConfig) Template() (string, error) {
 		ACMValidationLambda:       acmLambda.String(),
 		DNSDelegationLambda:       dnsLambda.String(),
 		EnableLongARNFormatLambda: enableLongARNsLambda.String(),
+		CustomDomainLambda:        customDomainLambda.String(),
 		ImportVPC:                 e.in.ImportVPCConfig,
 		VPCConfig:                 vpcConf,
 		Version:                   e.in.Version,
