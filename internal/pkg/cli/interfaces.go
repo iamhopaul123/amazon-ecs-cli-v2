@@ -8,10 +8,11 @@ import (
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
+	awscloudformation "github.com/aws/copilot-cli/internal/pkg/aws/cloudformation"
 	"github.com/aws/copilot-cli/internal/pkg/aws/codepipeline"
 	"github.com/aws/copilot-cli/internal/pkg/config"
 	"github.com/aws/copilot-cli/internal/pkg/deploy"
+	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation"
 	"github.com/aws/copilot-cli/internal/pkg/deploy/cloudformation/stack"
 	"github.com/aws/copilot-cli/internal/pkg/describe"
 	"github.com/aws/copilot-cli/internal/pkg/exec"
@@ -19,6 +20,7 @@ import (
 	"github.com/aws/copilot-cli/internal/pkg/logging"
 	"github.com/aws/copilot-cli/internal/pkg/repository"
 	"github.com/aws/copilot-cli/internal/pkg/task"
+	"github.com/aws/copilot-cli/internal/pkg/template"
 	"github.com/aws/copilot-cli/internal/pkg/term/command"
 	termprogress "github.com/aws/copilot-cli/internal/pkg/term/progress"
 	"github.com/aws/copilot-cli/internal/pkg/term/prompt"
@@ -207,6 +209,10 @@ type describer interface {
 	Describe() (describe.HumanJSONStringer, error)
 }
 
+type reader interface {
+	Read(path string) (*template.Content, error)
+}
+
 type wsFileDeleter interface {
 	DeleteWorkspaceFile() error
 }
@@ -292,6 +298,10 @@ type artifactUploader interface {
 	PutArtifact(bucket, fileName string, data io.Reader) (string, error)
 }
 
+type zipAndUploader interface {
+	ZipAndUpload(bucket, name string, data map[string]string) error
+}
+
 type bucketEmptier interface {
 	EmptyBucket(bucket string) error
 }
@@ -335,7 +345,7 @@ type appDeployer interface {
 	DeployApp(in *deploy.CreateAppInput) error
 	AddServiceToApp(app *config.Application, svcName string) error
 	AddJobToApp(app *config.Application, jobName string) error
-	AddEnvToApp(app *config.Application, env *config.Environment) error
+	AddEnvToApp(opts *cloudformation.AddEnvToAppOpts) error
 	DelegateDNSPermissions(app *config.Application, accountID string) error
 	DeleteApp(name string) error
 }
@@ -346,7 +356,7 @@ type appResourcesGetter interface {
 }
 
 type taskDeployer interface {
-	DeployTask(out termprogress.FileWriter, input *deploy.CreateTaskResourcesInput, opts ...cloudformation.StackOption) error
+	DeployTask(out termprogress.FileWriter, input *deploy.CreateTaskResourcesInput, opts ...awscloudformation.StackOption) error
 }
 
 type taskStackManager interface {

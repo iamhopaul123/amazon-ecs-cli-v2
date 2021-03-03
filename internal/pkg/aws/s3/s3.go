@@ -5,6 +5,8 @@
 package s3
 
 import (
+	"archive/zip"
+	"bytes"
 	"fmt"
 	"io"
 	"path"
@@ -59,6 +61,34 @@ func (s *S3) PutArtifact(bucket, fileName string, data io.Reader) (string, error
 	}
 
 	return resp.Location, nil
+}
+
+// ZipAndUpload zips the file and uploads data to a S3 bucket.
+func (s *S3) ZipAndUpload(bucket, name string, data map[string]string) error {
+	buf := new(bytes.Buffer)
+	w := zip.NewWriter(buf)
+	for name, content := range data {
+		f, err := w.Create(name)
+		if err != nil {
+			return fmt.Errorf("create zip file %s: %w", name, err)
+		}
+		_, err = f.Write([]byte(content))
+		if err != nil {
+			return fmt.Errorf("write zip file %s: %w", name, err)
+		}
+	}
+	err := w.Close()
+	if err != nil {
+		return err
+	}
+	if _, err := s.s3Manager.Upload(&s3manager.UploadInput{
+		Body:   buf,
+		Bucket: aws.String(bucket),
+		Key:    aws.String(name),
+	}); err != nil {
+		return fmt.Errorf("upload %s to bucket %s: %w", name, bucket, err)
+	}
+	return nil
 }
 
 // EmptyBucket deletes all objects within the bucket.
