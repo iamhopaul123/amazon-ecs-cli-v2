@@ -49,19 +49,19 @@ type deployWkldVars struct {
 type deploySvcOpts struct {
 	deployWkldVars
 
-	store              store
-	ws                 wsSvcDirReader
-	imageBuilderPusher imageBuilderPusher
-	unmarshal          func([]byte) (manifest.WorkloadManifest, error)
-	s3                 artifactUploader
-	cmd                runner
-	addons             templater
-	appCFN             appResourcesGetter
-	svcCFN             cloudformation.CloudFormation
-	sessProvider       sessionProvider
-	envUpgradeCmd      actionCommand
+	store               store
+	ws                  wsSvcDirReader
+	imageBuilderPusher  imageBuilderPusher
+	unmarshal           func([]byte) (manifest.WorkloadManifest, error)
+	s3                  artifactUploader
+	cmd                 runner
+	addons              templater
+	appCFN              appResourcesGetter
+	svcCFN              cloudformation.CloudFormation
+	sessProvider        sessionProvider
+	envUpgradeCmd       actionCommand
 	newAppVersionGetter func(string) (versionGetter, error)
-	endpointGetter     endpointGetter
+	endpointGetter      endpointGetter
 
 	spinner progress
 	sel     wsSelector
@@ -447,7 +447,7 @@ func (o *deploySvcOpts) stackConfiguration(addonsURL string) (cloudformation.Sta
 			if appVersionGetter, err = o.newAppVersionGetter(o.appName); err != nil {
 				return nil, err
 			}
-			if err = validateAlias(aws.StringValue(t.Name), aws.StringValue(t.Alias), o.targetApp, o.envName, appVersionGetter); err != nil {
+			if err = validateAlias(aws.StringValue(t.Name), t.Alias, o.targetApp, o.envName, appVersionGetter); err != nil {
 				return nil, err
 			}
 			conf, err = stack.NewHTTPSLoadBalancedWebService(t, o.targetEnvironment.Name, o.targetEnvironment.App, *rc)
@@ -479,35 +479,45 @@ func (o *deploySvcOpts) deploySvc(addonsURL string) error {
 	return nil
 }
 
-func validateAlias(svcName, alias string, app *config.Application, envName string, appVersionGetter versionGetter) error {
-	if alias == "" {
+func validateAlias(svcName string, aliases *manifest.AliasOverride, app *config.Application, envName string, appVersionGetter versionGetter) error {
+	if aliases == nil {
 		return nil
 	}
-	if err := validateAppVersion(alias, app, appVersionGetter); err != nil {
+	aliasList, err := aliases.ToStringSlice()
+	if err != nil {
+		return fmt.Errorf(`convert 'http.alias' to string slice: %w`, err)
+	}
+	if err := validateAppVersion(app, appVersionGetter); err != nil {
 		log.Errorf(`Cannot deploy service %s because the application version is incompatible.
 To upgrade the application, please run %s first (see https://aws.github.io/copilot-cli/docs/credentials/#application-credentials).
 `, svcName,
 			color.HighlightCode("copilot app upgrade"))
 		return err
 	}
-	// Alias should be within either env, app, or root hosted zone.
-	var regEnvHostedZone, regAppHostedZone, regRootHostedZone *regexp.Regexp
-	var err error
-	if regEnvHostedZone, err = regexp.Compile(fmt.Sprintf(`^([^\.]+\.)?%s.%s.%s`, envName, app.Name, app.Domain)); err != nil {
-		return err
-	}
-	if regAppHostedZone, err = regexp.Compile(fmt.Sprintf(`^([^\.]+\.)?%s.%s`, app.Name, app.Domain)); err != nil {
-		return err
-	}
-	if regRootHostedZone, err = regexp.Compile(fmt.Sprintf(`^([^\.]+\.)?%s`, app.Domain)); err != nil {
-		return err
-	}
-	for _, re := range []*regexp.Regexp{regEnvHostedZone, regAppHostedZone, regRootHostedZone} {
-		if re.MatchString(alias) {
-			return nil
+	for _, alias := range aliasList {
+		// Alias should be within either env, app, or root hosted zone.
+		var regEnvHostedZone, regAppHostedZone, regRootHostedZone *regexp.Regexp
+		var err error
+		if regEnvHostedZone, err = regexp.Compile(fmt.Sprintf(`^([^\.]+\.)?%s.%s.%s`, envName, app.Name, app.Domain)); err != nil {
+			return err
 		}
-	}
-	log.Errorf(`%s must match one of the following patterns:
+		if regAppHostedZone, err = regexp.Compile(fmt.Sprintf(`^([^\.]+\.)?%s.%s`, app.Name, app.Domain)); err != nil {
+			return err
+		}
+		if regRootHostedZone, err = regexp.Compile(fmt.Sprintf(`^([^\.]+\.)?%s`, app.Domain)); err != nil {
+			return err
+		}
+		validAlias := false
+		for _, re := range []*regexp.Regexp{regEnvHostedZone, regAppHostedZone, regRootHostedZone} {
+			if re.MatchString(alias) {
+				validAlias = true
+				break
+			}
+		}
+		if validAlias {
+			continue
+		}
+		log.Errorf(`%s must match one of the following patterns:
 - %s.%s.%s,
 - <name>.%s.%s.%s,
 - %s.%s,
@@ -515,12 +525,14 @@ To upgrade the application, please run %s first (see https://aws.github.io/copil
 - %s,
 - <name>.%s
 `, color.HighlightCode("http.alias"), envName, app.Name, app.Domain, envName,
-		app.Name, app.Domain, app.Name, app.Domain, app.Name,
-		app.Domain, app.Domain, app.Domain)
-	return fmt.Errorf("alias is not supported in hosted zones not managed by Copilot")
+			app.Name, app.Domain, app.Name, app.Domain, app.Name,
+			app.Domain, app.Domain, app.Domain)
+		return fmt.Errorf(`alias "%s" is not supported in hosted zones managed by Copilot`, alias)
+	}
+	return nil
 }
 
-func validateAppVersion(alias string, app *config.Application, appVersionGetter versionGetter) error {
+func validateAppVersion(app *config.Application, appVersionGetter versionGetter) error {
 	appVersion, err := appVersionGetter.Version()
 	if err != nil {
 		return fmt.Errorf("get version for app %s: %w", app.Name, err)
