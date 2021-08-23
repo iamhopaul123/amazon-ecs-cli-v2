@@ -47,11 +47,19 @@ func parseRules(rules []Rule) ([]nodeUpserter, error) {
 }
 
 func unmarshalCFNYaml(temp []byte) (*yaml.Node, error) {
-	return nil, nil
+	var node yaml.Node
+	if err := yaml.Unmarshal(temp, &node); err != nil {
+		return nil, fmt.Errorf("unmarshal CloudFormation template: %w", err)
+	}
+	return &node, nil
 }
 
 func marshalCFNYaml(content *yaml.Node) ([]byte, error) {
-	return nil, nil
+	out, err := yaml.Marshal(content)
+	if err != nil {
+		return nil, fmt.Errorf("marshal CloudFormation template: %w", err)
+	}
+	return out, nil
 }
 
 func applyRules(rules []nodeUpserter, content *yaml.Node) error {

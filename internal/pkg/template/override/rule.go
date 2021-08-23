@@ -13,9 +13,10 @@ import (
 )
 
 const (
+	// PathSegmentSeparator is the separateor for path segments.
+	PathSegmentSeparator = "."
 	// seqAppendToLastSymbol is the symbol used to add a node to the tail of a list.
 	seqAppendToLastSymbol = "-"
-	pathSegmentSeparator  = "."
 )
 
 // Subset of YAML tag values: http://yaml.org/type/
@@ -44,14 +45,14 @@ type nodeUpserter interface {
 // Rule is the override rule override package uses.
 type Rule struct {
 	Path  string // example: "ContainerDefinitions[0].Ulimits[-].HardLimit"
-	Value *yaml.Node
+	Value yaml.Node
 }
 
 func (r Rule) validate() error {
 	if r.Path == "" {
 		return fmt.Errorf("rule path is empty")
 	}
-	pathSegments := strings.Split(r.Path, pathSegmentSeparator)
+	pathSegments := strings.Split(r.Path, PathSegmentSeparator)
 	for _, pathSegment := range pathSegments {
 		if !pathSegmentRegexp.MatchString(pathSegment) {
 			return fmt.Errorf(`invalid override path segment "%s": segments must be of the form "array[0]", "array[%s]" or "key"`,
@@ -66,7 +67,7 @@ func (r Rule) parse() (nodeUpserter, error) {
 }
 
 func (r Rule) parseRule() (nodeUpserter, error) {
-	pathSegments := strings.SplitAfterN(r.Path, pathSegmentSeparator, 2)
+	pathSegments := strings.SplitAfterN(r.Path, PathSegmentSeparator, 2)
 	currPathSegment := strings.TrimSuffix(pathSegments[0], ".")
 
 	subMatches := pathSegmentRegexp.FindStringSubmatch(currPathSegment)
@@ -88,7 +89,7 @@ func (r Rule) parseRule() (nodeUpserter, error) {
 	}
 	if len(pathSegments) < 2 {
 		// This is the last segment.
-		baseNode.valueToInsert = r.Value
+		baseNode.valueToInsert = &r.Value
 		return currNode(indexMatch, baseNode)
 	}
 
