@@ -16,7 +16,7 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.2.0
 	github.com/hinshun/vt10x v0.0.0-20180809195222-d55458df857c // indirect
-	github.com/imdario/mergo v0.3.9
+	github.com/imdario/mergo v0.3.13
 	github.com/lnquy/cron v1.1.1
 	github.com/moby/buildkit v0.8.3
 	github.com/onsi/ginkgo v1.16.4
@@ -31,7 +31,7 @@ require (
 	golang.org/x/mod v0.4.2
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gopkg.in/ini.v1 v1.62.0
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v3 v3.0.0
 )
 
 replace github.com/containerd/containerd => github.com/containerd/containerd v1.3.1-0.20200227195959-4d242818bf55
