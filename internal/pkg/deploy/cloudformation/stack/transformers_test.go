@@ -1018,7 +1018,7 @@ func Test_convertStorageOpts(t *testing.T) {
 						EFS: &template.EFSVolumeConfiguration{
 							Filesystem:    template.PlainFileSystemID("fs-1234"),
 							RootDirectory: aws.String("/"),
-							IAM:           aws.String("DISABLED"),
+							IAM:           aws.String("ENABLED"),
 						},
 					},
 				},
@@ -1118,7 +1118,7 @@ func Test_convertStorageOpts(t *testing.T) {
 							FileSystemID:  &manifest.StringOrFromCFN{Plain: aws.String("fs-1234")},
 							RootDirectory: aws.String("/wordpress"),
 							AuthConfig: manifest.AuthorizationConfig{
-								IAM: aws.Bool(true),
+								IAM: aws.Bool(false),
 							},
 						},
 					},
@@ -1135,7 +1135,7 @@ func Test_convertStorageOpts(t *testing.T) {
 						EFS: &template.EFSVolumeConfiguration{
 							Filesystem:    template.PlainFileSystemID("fs-1234"),
 							RootDirectory: aws.String("/wordpress"),
-							IAM:           aws.String("ENABLED"),
+							IAM:           aws.String("DISABLED"),
 						},
 					},
 				},
@@ -1256,7 +1256,7 @@ func Test_convertStorageOpts(t *testing.T) {
 						EFS: &template.EFSVolumeConfiguration{
 							Filesystem:    template.PlainFileSystemID("fs-1234"),
 							RootDirectory: aws.String("/"),
-							IAM:           aws.String("DISABLED"),
+							IAM:           aws.String("ENABLED"),
 						},
 					},
 					{
@@ -1309,7 +1309,7 @@ func Test_convertStorageOpts(t *testing.T) {
 						EFS: &template.EFSVolumeConfiguration{
 							Filesystem:    template.PlainFileSystemID("fs-1234"),
 							RootDirectory: aws.String("/"),
-							IAM:           aws.String("DISABLED"),
+							IAM:           aws.String("ENABLED"),
 						},
 					},
 				},

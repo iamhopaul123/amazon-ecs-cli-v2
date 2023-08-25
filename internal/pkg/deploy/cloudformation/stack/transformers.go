@@ -40,7 +40,7 @@ const (
 // Default values for EFS options
 const (
 	defaultRootDirectory   = "/"
-	defaultIAM             = disabled
+	defaultIAM             = enabled
 	defaultReadOnly        = true
 	defaultWritePermission = false
 	defaultNLBProtocol     = manifest.TCP
@@ -930,18 +930,9 @@ func convertEFSConfiguration(in manifest.EFSVolumeConfiguration) *template.EFSVo
 	}
 	// Set default values for IAM and AccessPointID
 	iam := aws.String(defaultIAM)
-	if in.AuthConfig.IsEmpty() {
-		return &template.EFSVolumeConfiguration{
-			Filesystem:    convertFileSystemID(in),
-			RootDirectory: rootDir,
-			IAM:           iam,
-		}
+	if in.AuthConfig.IAM != nil && !*in.AuthConfig.IAM {
+		iam = aws.String(disabled)
 	}
-	// AuthConfig exists; check the properties.
-	if aws.BoolValue(in.AuthConfig.IAM) {
-		iam = aws.String(enabled)
-	}
-
 	return &template.EFSVolumeConfiguration{
 		Filesystem:    convertFileSystemID(in),
 		RootDirectory: rootDir,
