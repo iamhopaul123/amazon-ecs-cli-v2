@@ -850,7 +850,7 @@ func convertEFSPermissions(input map[string]*manifest.Volume) []*template.EFSPer
 		output = append(output, &template.EFSPermission{
 			Write:         write,
 			AccessPointID: accessPointID,
-			FilesystemID:  convertFileSystemID(volume.EFS.Advanced),
+			FilesystemID:  convertFileSystemID(volume.EFS.Advanced.FileSystemID),
 		})
 	}
 	return output
@@ -932,7 +932,7 @@ func convertEFSConfiguration(in manifest.EFSVolumeConfiguration) *template.EFSVo
 	iam := aws.String(defaultIAM)
 	if in.AuthConfig.IsEmpty() {
 		return &template.EFSVolumeConfiguration{
-			Filesystem:    convertFileSystemID(in),
+			Filesystem:    convertFileSystemID(in.FileSystemID),
 			RootDirectory: rootDir,
 			IAM:           iam,
 		}
@@ -943,18 +943,18 @@ func convertEFSConfiguration(in manifest.EFSVolumeConfiguration) *template.EFSVo
 	}
 
 	return &template.EFSVolumeConfiguration{
-		Filesystem:    convertFileSystemID(in),
+		Filesystem:    convertFileSystemID(in.FileSystemID),
 		RootDirectory: rootDir,
 		IAM:           iam,
 		AccessPointID: in.AuthConfig.AccessPointID,
 	}
 }
 
-func convertFileSystemID(in manifest.EFSVolumeConfiguration) template.FileSystemID {
-	if in.FileSystemID.Plain != nil {
-		return template.PlainFileSystemID(aws.StringValue(in.FileSystemID.Plain))
+func convertFileSystemID(fileSystemID manifest.StringOrFromCFN) template.FileSystemID {
+	if fileSystemID.Plain != nil {
+		return template.PlainFileSystemID(aws.StringValue(fileSystemID.Plain))
 	}
-	return template.ImportedFileSystemID(aws.StringValue(in.FileSystemID.FromCFN.Name))
+	return template.ImportedFileSystemID(aws.StringValue(fileSystemID.FromCFN.Name))
 }
 
 func convertNetworkConfig(network manifest.NetworkConfig) template.NetworkOpts {
